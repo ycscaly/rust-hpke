@@ -21,6 +21,8 @@ pub trait Kem: Sized {
         + Serializable
         + Deserializable
         + SerdeSerialize
+        + core::fmt::Debug
+        + PartialEq
         + for<'a> SerdeDeserialize<'a>;
     /// The key exchange's public key type. If you want to generate a keypair, see
     /// `Kem::gen_keypair` or `Kem::derive_keypair`
@@ -34,6 +36,7 @@ pub trait Kem: Sized {
         + Serializable
         + Deserializable
         + SerdeSerialize
+        + PartialEq
         + for<'a> SerdeDeserialize<'a>;
 
     /// The key exchange's private key type. If you want to generate a keypair, see
