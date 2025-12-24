@@ -159,7 +159,7 @@ impl<A: Aead> Deserializable for AeadTag<A> {
 }
 
 /// The HPKE encryption context. This is what you use to `seal` plaintexts and `open` ciphertexts.
-pub(crate) struct AeadCtx<A: Aead, Kdf: KdfTrait, Kem: KemTrait> {
+pub struct AeadCtx<A: Aead, Kdf: KdfTrait, Kem: KemTrait> {
     /// Records whether the nonce sequence counter has overflowed
     overflowed: bool,
     /// The underlying AEAD instance. This also does decryption.

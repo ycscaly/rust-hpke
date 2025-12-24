@@ -130,9 +130,9 @@ mod single_shot;
 #[doc(inline)]
 pub use kem::Kem;
 #[doc(inline)]
-pub use op_mode::{OpModeR, OpModeS, PskBundle};
+pub use op_mode::{OpMode, OpModeR, OpModeS, PskBundle};
 #[doc(inline)]
-pub use setup::{setup_receiver, setup_sender};
+pub use setup::{setup_receiver, derive_enc_ctx, setup_sender};
 #[doc(inline)]
 pub use single_shot::{single_shot_open_in_place_detached, single_shot_seal_in_place_detached};
 
