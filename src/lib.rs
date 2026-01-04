@@ -117,7 +117,7 @@ pub use rand_core;
 mod util;
 
 pub mod aead;
-mod dhkex;
+pub mod dhkex;
 pub mod kdf;
 pub mod kem;
 mod op_mode;

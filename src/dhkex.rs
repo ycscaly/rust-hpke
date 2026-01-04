@@ -6,8 +6,7 @@ use core::fmt::Debug;
 // Table 2.
 pub(crate) const MAX_PUBKEY_SIZE: usize = 133;
 
-#[doc(hidden)]
-/// Internal error type used to represent `DhKeyExchange::dh()` failing
+/// Error type returned when a Diffie-Hellman operation fails.
 #[derive(Debug)]
 pub struct DhError;
 
@@ -24,15 +23,12 @@ pub trait DhKeyExchange {
     type PrivateKey: Clone + Serializable + Deserializable;
 
     /// The result of a DH operation
-    #[doc(hidden)]
     type KexResult: Serializable;
 
     /// Computes the public key of a given private key
-    #[doc(hidden)]
     fn sk_to_pk(sk: &Self::PrivateKey) -> Self::PublicKey;
 
-    /// Does the Diffie-Hellman operation
-    #[doc(hidden)]
+    /// Performs the Diffie-Hellman key exchange operation.
     fn dh(sk: &Self::PrivateKey, pk: &Self::PublicKey) -> Result<Self::KexResult, DhError>;
 
     /// Computes a keypair given key material `ikm` of sufficient entropy. See
@@ -48,4 +44,4 @@ pub trait DhKeyExchange {
 pub(crate) mod ecdh_nistp;
 
 #[cfg(feature = "x25519")]
-pub(crate) mod x25519;
+pub mod x25519;

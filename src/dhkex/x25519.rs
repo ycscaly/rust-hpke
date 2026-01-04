@@ -118,15 +118,11 @@ impl Serializable for KexResult {
 pub struct X25519 {}
 
 impl DhKeyExchange for X25519 {
-    #[doc(hidden)]
     type PublicKey = PublicKey;
-    #[doc(hidden)]
     type PrivateKey = PrivateKey;
-    #[doc(hidden)]
     type KexResult = KexResult;
 
     /// Converts an X25519 private key to a public key
-    #[doc(hidden)]
     fn sk_to_pk(sk: &PrivateKey) -> PublicKey {
         PublicKey(x25519_dalek::PublicKey::from(&sk.0))
     }
@@ -134,7 +130,6 @@ impl DhKeyExchange for X25519 {
     /// Does the DH operation. Returns an error if and only if the DH result was all zeros. This is
     /// required by the HPKE spec. The error is converted into the appropriate higher-level error
     /// by the caller, i.e., `HpkeError::EncapError` or `HpkeError::DecapError`.
-    #[doc(hidden)]
     fn dh(sk: &PrivateKey, pk: &PublicKey) -> Result<KexResult, DhError> {
         let res = sk.0.diffie_hellman(&pk.0);
         // "Senders and recipients MUST check whether the shared secret is the all-zero value

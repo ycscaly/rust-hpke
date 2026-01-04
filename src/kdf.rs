@@ -28,9 +28,11 @@ pub trait Kdf {
 use Kdf as KdfTrait;
 
 // Convenience types for the functions below
-pub(crate) type DigestArray<Kdf> =
+/// The digest array type for a given KDF.
+pub type DigestArray<Kdf> =
     Array<u8, <<<Kdf as KdfTrait>::HashImpl as EagerHash>::Core as OutputSizeUser>::OutputSize>;
-pub(crate) type SimpleHkdf<Kdf> = hkdf::Hkdf<<Kdf as KdfTrait>::HashImpl>;
+/// The HKDF context type for a given KDF.
+pub type SimpleHkdf<Kdf> = hkdf::Hkdf<<Kdf as KdfTrait>::HashImpl>;
 type SimpleHkdfExtract<Kdf> = hkdf::HkdfExtract<<Kdf as KdfTrait>::HashImpl>;
 
 /// The implementation of HKDF-SHA256
@@ -74,8 +76,9 @@ impl KdfTrait for HkdfSha512 {
 //   return shared_secret
 
 /// Uses the given IKM to extract a secret, and then uses that secret, plus the given suite ID and
-/// info string, to expand to the output buffer
-#[doc(hidden)]
+/// info string, to expand to the output buffer.
+///
+/// This implements RFC 9180 §4.1 ExtractAndExpand.
 pub fn extract_and_expand<Kdf: KdfTrait>(
     ikm: &[u8],
     suite_id: &[u8],
@@ -93,8 +96,9 @@ pub fn extract_and_expand<Kdf: KdfTrait>(
 //   labeled_ikm = concat("HPKE-v1", suite_id, label, ikm)
 //   return Extract(salt, labeled_ikm)
 
-/// Returns the HKDF context derived from `(salt=salt, ikm="HPKE-v1"||suite_id||label||ikm)`
-#[doc(hidden)]
+/// Returns the HKDF context derived from `(salt=salt, ikm="HPKE-v1"||suite_id||label||ikm)`.
+///
+/// This implements RFC 9180 §4 LabeledExtract.
 pub fn labeled_extract<Kdf: KdfTrait>(
     salt: &[u8],
     suite_id: &[u8],
@@ -110,8 +114,7 @@ pub fn labeled_extract<Kdf: KdfTrait>(
     extract_ctx.finalize()
 }
 
-// This trait only exists so I can implement it for hkdf::Hkdf
-#[doc(hidden)]
+/// Trait for performing RFC 9180 §4 LabeledExpand operation.
 pub trait LabeledExpand {
     /// Does a `LabeledExpand` key derivation function using HKDF. If `out.len()` is more than 255x
     /// the digest size (in bytes) of the underlying hash function, returns an
