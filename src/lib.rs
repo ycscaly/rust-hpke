@@ -114,7 +114,7 @@ pub use hybrid_array;
 pub use rand_core;
 
 #[macro_use]
-mod util;
+pub mod util;
 
 pub mod aead;
 pub mod dhkex;

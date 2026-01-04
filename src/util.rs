@@ -1,11 +1,11 @@
 use crate::{aead::Aead, kdf::Kdf as KdfTrait, kem::Kem as KemTrait, HpkeError, Serializable};
 
-/// Represents a ciphersuite context. That's "KEMXX", where `XX` is the KEM ID
-pub(crate) type KemSuiteId = [u8; 5];
+/// Represents a KEM ciphersuite context. That's "KEMXX", where `XX` is the KEM ID.
+pub type KemSuiteId = [u8; 5];
 
-/// Represents a ciphersuite context. That's "HPKEXXYYZZ", where `XX` is the KEM ID, `YY` is the
-/// KDF ID, and `ZZ` is the AEAD ID
-pub(crate) type FullSuiteId = [u8; 10];
+/// Represents a full HPKE ciphersuite context. That's "HPKEXXYYZZ", where `XX` is the KEM ID,
+/// `YY` is the KDF ID, and `ZZ` is the AEAD ID.
+pub type FullSuiteId = [u8; 10];
 
 /// Writes a u16 to a bytestring in big-endian order. `buf.len()` MUST be 2
 #[rustfmt::skip]
@@ -37,8 +37,10 @@ pub(crate) fn write_u64_be(buf: &mut [u8], n: u64) {
 //   I2OSP(aead_id, 2)
 // )
 
-/// Constructs the `suite_id` used as binding context in all functions in `setup` and `aead`
-pub(crate) fn full_suite_id<A, Kdf, Kem>() -> FullSuiteId
+/// Constructs the full HPKE `suite_id` used as binding context in key schedule.
+///
+/// RFC 9180 §5.1: `suite_id = concat("HPKE", I2OSP(kem_id, 2), I2OSP(kdf_id, 2), I2OSP(aead_id, 2))`
+pub fn full_suite_id<A, Kdf, Kem>() -> FullSuiteId
 where
     A: Aead,
     Kdf: KdfTrait,
@@ -58,8 +60,10 @@ where
 // RFC 9180 §4.1
 // suite_id = concat("KEM", I2OSP(kem_id, 2))
 
-/// Constructs the `suite_id` used as binding context in all functions in `kem`
-pub(crate) fn kem_suite_id<Kem: KemTrait>() -> KemSuiteId {
+/// Constructs the KEM `suite_id` used as binding context in KEM operations.
+///
+/// RFC 9180 §4.1: `suite_id = concat("KEM", I2OSP(kem_id, 2))`
+pub fn kem_suite_id<Kem: KemTrait>() -> KemSuiteId {
     // XX is the KEM ID
     let mut suite_id = *b"KEMXX";
 
