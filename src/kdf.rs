@@ -91,6 +91,30 @@ pub fn extract_and_expand<Kdf: KdfTrait>(
     hkdf_ctx.labeled_expand(suite_id, b"shared_secret", info, out)
 }
 
+/// Derives a KEM shared secret from raw DH bytes and serialized public keys.
+///
+/// This implements RFC 9180 §4.1:
+/// - Constructs `kem_context = enc || pkR`
+/// - Calls `ExtractAndExpand(dh, kem_context)`
+///
+/// Parameters:
+/// - `dh`: The raw Diffie-Hellman result bytes
+/// - `suite_id`: The KEM suite identifier (e.g., from `kem_suite_id::<Kem>()`)
+/// - `enc`: The encapsulated key (ephemeral public key) bytes
+/// - `pk_r`: The recipient's public key bytes
+/// - `out`: The output buffer for the shared secret
+pub fn kem_derive_shared_secret<Kdf: KdfTrait>(
+    dh: &[u8],
+    suite_id: &[u8],
+    enc: &[u8],
+    pk_r: &[u8],
+    out: &mut [u8],
+) -> Result<(), hkdf::InvalidLength> {
+    // Build kem_context = enc || pkR
+    let kem_context: alloc::vec::Vec<u8> = enc.iter().chain(pk_r.iter()).copied().collect();
+    extract_and_expand::<Kdf>(dh, suite_id, &kem_context, out)
+}
+
 // RFC 9180 §4
 // def LabeledExtract(salt, label, ikm):
 //   labeled_ikm = concat("HPKE-v1", suite_id, label, ikm)
