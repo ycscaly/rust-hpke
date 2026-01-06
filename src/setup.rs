@@ -75,6 +75,43 @@ where
     (key, base_nonce)
 }
 
+/// Creates an AEAD decryption context from a shared secret using the HPKE key schedule (base mode).
+///
+/// This is useful when you have computed the shared secret externally (e.g., via a custom
+/// key exchange with a DLEQ proof) and want to use HPKE's key schedule to derive encryption keys.
+///
+/// This performs the same key derivation as `setup_receiver` but accepts an externally-provided
+/// shared secret instead of performing the KEM decapsulation internally.
+///
+/// # Arguments
+/// * `shared_secret` - The shared secret from your key exchange (must match `Kem::NSecret` in size)
+/// * `info` - Application-specific context info for domain separation
+///
+/// # Example
+/// ```ignore
+/// // Compute shared secret via custom DH exchange
+/// let dh_shared_secret = my_secret_key * their_public_key;
+/// let shared_secret_bytes = /* extract_and_expand on dh_shared_secret */;
+///
+/// // Construct SharedSecret and create AEAD context
+/// let shared_secret = SharedSecret::<Kem>::from_bytes(&shared_secret_bytes)?;
+/// let mut ctx = setup_from_shared_secret::<Aead, Kdf, Kem>(shared_secret, info);
+/// let plaintext = ctx.open(&ciphertext, &aad)?;
+/// ```
+pub fn setup_from_shared_secret<A, Kdf, Kem>(
+    shared_secret: SharedSecret<Kem>,
+    info: &[u8],
+) -> AeadCtxR<A, Kdf, Kem>
+where
+    A: Aead,
+    Kdf: KdfTrait,
+    Kem: KemTrait,
+{
+    let mode: OpModeR<'_, Kem> = OpModeR::Base;
+    let enc_ctx = derive_enc_ctx::<A, Kdf, Kem, _>(&mode, shared_secret, info);
+    enc_ctx.into()
+}
+
 /// Secret generated in `derive_enc_ctx` and stored in `AeadCtx`.
 /// Implements `Default` and `Zeroize`, and zeroizes on drop.
 // Only public if we're exposing streaming encryption

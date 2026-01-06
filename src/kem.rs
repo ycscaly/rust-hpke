@@ -97,6 +97,26 @@ impl<Kem: KemTrait> Default for SharedSecret<Kem> {
     }
 }
 
+impl<Kem: KemTrait> SharedSecret<Kem> {
+    /// Creates a `SharedSecret` from raw bytes.
+    ///
+    /// This is useful when you have computed the shared secret externally (e.g., via a custom
+    /// key exchange) and want to use it with the HPKE key schedule.
+    ///
+    /// Returns `Err(HpkeError::IncorrectInputLength)` if the input length doesn't match `Kem::NSecret`.
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, HpkeError> {
+        if bytes.len() != <Kem::NSecret as hybrid_array::typenum::Unsigned>::USIZE {
+            return Err(HpkeError::IncorrectInputLength(
+                <Kem::NSecret as hybrid_array::typenum::Unsigned>::USIZE,
+                bytes.len(),
+            ));
+        }
+        let mut arr = Array::<u8, Kem::NSecret>::default();
+        arr.copy_from_slice(bytes);
+        Ok(SharedSecret(arr))
+    }
+}
+
 // SharedSecrets should zeroize on drop
 impl<Kem: KemTrait> Zeroize for SharedSecret<Kem> {
     fn zeroize(&mut self) {
