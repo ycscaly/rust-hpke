@@ -95,10 +95,27 @@ where
 ///
 /// // Construct SharedSecret and create AEAD context
 /// let shared_secret = SharedSecret::<Kem>::from_bytes(&shared_secret_bytes)?;
-/// let mut ctx = setup_from_shared_secret::<Aead, Kdf, Kem>(shared_secret, info);
-/// let plaintext = ctx.open(&ciphertext, &aad)?;
+/// let mut ctx = setup_sender_from_shared_secret::<Aead, Kdf, Kem>(shared_secret, info);
+/// let ciphertext = ctx.seal(&plaintext, &aad)?;
 /// ```
-pub fn setup_from_shared_secret<A, Kdf, Kem>(
+pub fn setup_sender_from_shared_secret<A, Kdf, Kem>(
+    shared_secret: SharedSecret<Kem>,
+    info: &[u8],
+) -> AeadCtxS<A, Kdf, Kem>
+where
+    A: Aead,
+    Kdf: KdfTrait,
+    Kem: KemTrait,
+{
+    let mode: OpModeR<'_, Kem> = OpModeR::Base;
+    let enc_ctx = derive_enc_ctx::<A, Kdf, Kem, _>(&mode, shared_secret, info);
+    enc_ctx.into()
+}
+
+/// Creates an AEAD decryption context from a shared secret using the HPKE key schedule (base mode).
+///
+/// This is the receiver counterpart to `setup_sender_from_shared_secret`.
+pub fn setup_receiver_from_shared_secret<A, Kdf, Kem>(
     shared_secret: SharedSecret<Kem>,
     info: &[u8],
 ) -> AeadCtxR<A, Kdf, Kem>

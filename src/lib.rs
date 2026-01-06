@@ -133,7 +133,10 @@ pub use kem::{Kem, SharedSecret};
 #[doc(inline)]
 pub use op_mode::{OpModeR, OpModeS, PskBundle};
 #[doc(inline)]
-pub use setup::{key_schedule_base, setup_from_shared_secret, setup_receiver, setup_sender};
+pub use setup::{
+    key_schedule_base, setup_receiver, setup_receiver_from_shared_secret, setup_sender,
+    setup_sender_from_shared_secret,
+};
 #[doc(inline)]
 pub use single_shot::{single_shot_open_inout_detached, single_shot_seal_inout_detached};
 
