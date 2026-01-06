@@ -5,7 +5,7 @@ pub type KemSuiteId = [u8; 5];
 
 /// Represents a full HPKE ciphersuite context. That's "HPKEXXYYZZ", where `XX` is the KEM ID,
 /// `YY` is the KDF ID, and `ZZ` is the AEAD ID.
-pub type FullSuiteId = [u8; 10];
+pub(crate) type FullSuiteId = [u8; 10];
 
 /// Writes a u16 to a bytestring in big-endian order. `buf.len()` MUST be 2
 #[rustfmt::skip]
@@ -40,7 +40,7 @@ pub(crate) fn write_u64_be(buf: &mut [u8], n: u64) {
 /// Constructs the full HPKE `suite_id` used as binding context in key schedule.
 ///
 /// RFC 9180 §5.1: `suite_id = concat("HPKE", I2OSP(kem_id, 2), I2OSP(kdf_id, 2), I2OSP(aead_id, 2))`
-pub fn full_suite_id<A, Kdf, Kem>() -> FullSuiteId
+pub(crate) fn full_suite_id<A, Kdf, Kem>() -> FullSuiteId
 where
     A: Aead,
     Kdf: KdfTrait,

@@ -1,5 +1,5 @@
 use crate::{
-    aead::{Aead, AeadCtx, AeadCtxR, AeadCtxS, AeadKey, AeadNonce},
+    aead::{Aead, AeadCtx, AeadCtxR, AeadCtxS},
     kdf::{labeled_extract, DigestArray, Kdf as KdfTrait, LabeledExpand, MAX_DIGEST_SIZE},
     kem::{Kem as KemTrait, SharedSecret},
     op_mode::{OpMode, OpModeR, OpModeS},
@@ -10,72 +10,7 @@ use crate::{
 use rand_core::{CryptoRng, RngCore};
 use zeroize::Zeroize;
 
-/// Derives AEAD key and nonce from a shared secret using the HPKE key schedule (base mode).
-///
-/// This is a simplified version of the full key schedule for base mode (no PSK).
-/// Returns `(key, nonce)` as byte arrays.
-///
-/// RFC 9180 §5.1 KeySchedule for mode=0x00 (base):
-/// ```text
-/// psk_id_hash = LabeledExtract("", "psk_id_hash", "")
-/// info_hash = LabeledExtract("", "info_hash", info)
-/// key_schedule_context = concat(mode, psk_id_hash, info_hash)
-/// secret = LabeledExtract(shared_secret, "secret", "")
-/// key = LabeledExpand(secret, "key", key_schedule_context, Nk)
-/// base_nonce = LabeledExpand(secret, "base_nonce", key_schedule_context, Nn)
-/// ```
-pub fn key_schedule_base<A, Kdf, Kem>(
-    shared_secret: &[u8],
-    info: &[u8],
-) -> (AeadKey<A>, AeadNonce<A>)
-where
-    A: Aead,
-    Kdf: KdfTrait,
-    Kem: KemTrait,
-{
-    const MODE_BASE: u8 = 0x00;
-
-    let suite_id = full_suite_id::<A, Kdf, Kem>();
-
-    // psk_id_hash = LabeledExtract("", "psk_id_hash", "")  // empty psk_id for base mode
-    // info_hash = LabeledExtract("", "info_hash", info)
-    let (sched_context_buf, sched_context_size) = {
-        let (psk_id_hash, _) = labeled_extract::<Kdf>(&[], &suite_id, b"psk_id_hash", b"");
-        let (info_hash, _) = labeled_extract::<Kdf>(&[], &suite_id, b"info_hash", info);
-
-        concat_with_known_maxlen!(
-            MAX_DIGEST_SIZE,
-            &[MODE_BASE],
-            psk_id_hash.as_slice(),
-            info_hash.as_slice()
-        )
-    };
-    let sched_context = &sched_context_buf[..sched_context_size];
-
-    // secret = LabeledExtract(shared_secret, "secret", "")  // empty psk for base mode
-    let (_, secret_ctx) = labeled_extract::<Kdf>(shared_secret, &suite_id, b"secret", b"");
-
-    // key = LabeledExpand(secret, "key", key_schedule_context, Nk)
-    // base_nonce = LabeledExpand(secret, "base_nonce", key_schedule_context, Nn)
-    let mut key = AeadKey::<A>::default();
-    let mut base_nonce = AeadNonce::<A>::default();
-
-    secret_ctx
-        .labeled_expand(&suite_id, b"key", sched_context, key.0.as_mut_slice())
-        .expect("aead key len is way too big");
-    secret_ctx
-        .labeled_expand(
-            &suite_id,
-            b"base_nonce",
-            sched_context,
-            base_nonce.0.as_mut_slice(),
-        )
-        .expect("nonce len is way too big");
-
-    (key, base_nonce)
-}
-
-/// Creates an AEAD decryption context from a shared secret using the HPKE key schedule (base mode).
+/// Creates an AEAD encryption context from a shared secret using the HPKE key schedule (base mode).
 ///
 /// This is useful when you have computed the shared secret externally (e.g., via a custom
 /// key exchange with a DLEQ proof) and want to use HPKE's key schedule to derive encryption keys.
