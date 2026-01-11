@@ -103,7 +103,13 @@ impl<Kem: KemTrait> SharedSecret<Kem> {
     /// This is useful when you have computed the shared secret externally (e.g., via a custom
     /// key exchange) and want to use it with the HPKE key schedule.
     ///
-    /// Returns `Err(HpkeError::IncorrectInputLength)` if the input length doesn't match `Kem::NSecret`.
+    /// # Security
+    /// This function validates that the input is not all zeros, as required by RFC 9180 §7.1.4
+    /// for X25519 and X448 to prevent small-subgroup attacks.
+    ///
+    /// # Errors
+    /// - `Err(HpkeError::IncorrectInputLength)` if the input length doesn't match `Kem::NSecret`
+    /// - `Err(HpkeError::ValidationError)` if the input is all zeros (invalid DH result)
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, HpkeError> {
         if bytes.len() != <Kem::NSecret as hybrid_array::typenum::Unsigned>::USIZE {
             return Err(HpkeError::IncorrectInputLength(
@@ -111,6 +117,14 @@ impl<Kem: KemTrait> SharedSecret<Kem> {
                 bytes.len(),
             ));
         }
+
+        // RFC 9180 §7.1.4: "For X25519 and X448, the small-subgroup attack can be avoided
+        // by checking that the DH shared secret is not the all-zero value after computing it."
+        // We apply this check to all KEMs for defense in depth.
+        if bytes.iter().all(|&b| b == 0) {
+            return Err(HpkeError::ValidationError);
+        }
+
         let mut arr = Array::<u8, Kem::NSecret>::default();
         arr.copy_from_slice(bytes);
         Ok(SharedSecret(arr))
@@ -131,7 +145,37 @@ impl<Kem: KemTrait> Drop for SharedSecret<Kem> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{kem::Kem as KemTrait, Deserializable, Serializable};
+    use crate::{kem::Kem as KemTrait, Deserializable, HpkeError, Serializable};
+
+    #[cfg(feature = "x25519")]
+    #[test]
+    fn test_shared_secret_rejects_all_zeros() {
+        use super::SharedSecret;
+        use crate::kem::X25519HkdfSha256;
+
+        // All-zero bytes should be rejected per RFC 9180 §7.1.4
+        let zero_bytes = [0u8; 32];
+        let result = SharedSecret::<X25519HkdfSha256>::from_bytes(&zero_bytes);
+
+        assert!(
+            matches!(result, Err(HpkeError::ValidationError)),
+            "All-zero shared secret should be rejected with ValidationError"
+        );
+    }
+
+    #[cfg(feature = "x25519")]
+    #[test]
+    fn test_shared_secret_accepts_non_zero() {
+        use super::SharedSecret;
+        use crate::kem::X25519HkdfSha256;
+
+        // Non-zero bytes should be accepted
+        let mut bytes = [0u8; 32];
+        bytes[0] = 1; // At least one non-zero byte
+        let result = SharedSecret::<X25519HkdfSha256>::from_bytes(&bytes);
+
+        assert!(result.is_ok(), "Non-zero shared secret should be accepted");
+    }
 
     macro_rules! test_encap_correctness {
         ($test_name:ident, $kem_ty:ty) => {

@@ -85,3 +85,6 @@ harness = false
 
 [lib]
 bench = false
+
+# Exclude from parent workspace
+[workspace]
